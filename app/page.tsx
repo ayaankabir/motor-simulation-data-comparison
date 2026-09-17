@@ -1,6 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import useSWR from "swr"
+import { api } from "@/lib/api"
+import { conditions, setConditions } from "@/lib/conditions"
 import { BarChart3, CircuitBoard, Compass, Gauge, Info, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PROJECT } from "@/lib/conditions"
@@ -23,6 +26,15 @@ const NAV: { id: SectionId; label: string; icon: typeof Gauge }[] = [
 export default function Page() {
   const [section, setSection] = useState<SectionId>("overview")
   const [conditionId, setConditionId] = useState<string>("healthy")
+  const { data, error, isLoading } = useSWR("conditions", api.conditions)
+
+  useEffect(() => {
+    if (data) setConditions(data)
+  }, [data])
+
+  if (isLoading) return <StatusState title="Loading simulation results" detail="Connecting to the read-only FastAPI service at NEXT_PUBLIC_API_BASE_URL." />
+  if (error) return <StatusState title="API not connected" detail={error.message} error />
+  if (!data?.length) return <StatusState title="No condition data reported" detail="The API returned no condition records. Start the FastAPI service and verify its read-only results endpoint." />
 
   function goToCondition(id: string) {
     setConditionId(id)
@@ -98,6 +110,19 @@ export default function Page() {
         </div>
       </main>
     </div>
+  )
+}
+
+function StatusState({ title, detail, error = false }: { title: string; detail: string; error?: boolean }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background px-6">
+      <section className="max-w-lg rounded-xl border border-border bg-card p-6 shadow-sm">
+        <p className={cn("text-xs font-semibold uppercase tracking-wide", error ? "text-amber-300" : "text-primary")}>Read-only API</p>
+        <h1 className="mt-2 text-xl font-semibold text-foreground">{title}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{detail}</p>
+        <p className="mt-4 text-xs text-muted-foreground">Configure NEXT_PUBLIC_API_BASE_URL; this frontend does not run simulations or use bundled demo data.</p>
+      </section>
+    </main>
   )
 }
 
