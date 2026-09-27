@@ -134,6 +134,8 @@ Stored simulation results
         │
         ▼
  Interactive dashboard
+```
+
 ---
 
 ## Dashboard Screenshots
