@@ -26,10 +26,17 @@ const NAV: { id: SectionId; label: string; icon: typeof Gauge }[] = [
 export default function Page() {
   const [section, setSection] = useState<SectionId>("overview")
   const [conditionId, setConditionId] = useState<string>("healthy")
+  // The conditions store is a module-level singleton mutated in place by
+  // setConditions (splice). Bumping this counter forces the re-render that the
+  // in-place mutation cannot trigger on its own, so data appears on first load.
+  const [, setStoreVersion] = useState(0)
   const { data, error, isLoading } = useSWR("conditions", api.conditions)
 
   useEffect(() => {
-    if (data) setConditions(data)
+    if (data) {
+      setConditions(data)
+      setStoreVersion((version) => version + 1)
+    }
   }, [data])
 
   if (isLoading) return <StatusState title="Loading simulation results" detail="Connecting to the read-only FastAPI service at NEXT_PUBLIC_API_BASE_URL." />

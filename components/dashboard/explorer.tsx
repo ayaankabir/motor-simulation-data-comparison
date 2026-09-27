@@ -5,6 +5,7 @@ import { conditions, getCondition } from "@/lib/conditions"
 import { CategoryBadge, Panel, SectionHeading } from "@/components/dashboard/ui"
 import { MetricGroupTable } from "@/components/dashboard/metric-table"
 import { RawJson } from "@/components/dashboard/raw-json"
+import { ExplanationPanel } from "@/components/dashboard/explanation-panel"
 
 export function Explorer({
   activeId,
@@ -63,6 +64,8 @@ export function Explorer({
           ))}
         </div>
       </Panel>
+
+      <ExplanationPanel explanation={condition.explanation} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         {condition.metricGroups.map((g) => (
