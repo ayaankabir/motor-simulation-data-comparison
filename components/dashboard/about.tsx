@@ -20,6 +20,18 @@ export function About() {
           <p className="text-sm leading-relaxed text-muted-foreground">{PROJECT.honesty}</p>
         </Panel>
         <Panel className="space-y-2 p-5">
+          <h3 className="text-sm font-semibold text-foreground">Model Scope & Operating Envelope</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Demonstrates Krause stationary d-q reduced-order simulation under specific discrete operating perturbations (+10% stator resistance, +50% load, -10% voltage unbalance, BPFO bearing vibration, and 10% rotor asymmetry proxy). These represent discrete scenarios rather than an experimentally validated continuous operating envelope.
+          </p>
+        </Panel>
+        <Panel className="space-y-2 p-5">
+          <h3 className="text-sm font-semibold text-foreground">Verification & Self-Consistency</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {"Numerical consistency is verified via relative power balance (< 1e-6 residual), steady-state torque balance (Te - TL - Bω ≈ 0), solver convergence (RK45 tolerances rtol=1e-6, atol=1e-8), and agreement with analytical equivalent circuit calculations. These are internal mathematical verification checks, not physical motor validation."}
+          </p>
+        </Panel>
+        <Panel className="space-y-2 p-5">
           <h3 className="text-sm font-semibold text-foreground">Parameter set</h3>
           <p className="font-mono text-sm text-foreground">{PROJECT.parameterSet}</p>
           <p className="text-sm leading-relaxed text-muted-foreground">{PROJECT.parameterNotes}</p>
