@@ -1,67 +1,136 @@
 # Induction Motor Condition Monitoring Dashboard
 
-A Next.js dashboard providing interactive exploration, comparative benchmarking, and deterministic diagnostic reasoning for a physics-based reduced-order induction motor simulation.
+A Next.js dashboard for interactive exploration, cross-condition comparison, and deterministic diagnostic reasoning over a physics-based reduced-order induction motor simulation.
+
+**Live dashboard:** https://motor-simulation-data-comparison-8tpf-pi94csi9y.vercel.app
+
+**Backend API:** https://induction-motor-condition-monitoring.onrender.com
+
+**Backend repository:** https://github.com/ayaankabir/induction-motor-condition-monitoring
 
 ---
 
-### Project Scope & Model Operating Envelope
+## Project Overview
 
-- **Reduced-Order Model**: Based on classical Krause d-q (qd0) differential equations in the stationary reference frame with literature-standard 4 kW, 400 V, 50 Hz, 4-pole squirrel-cage parameters.
-- **Scenario Parameters vs. Operating Envelope**: The modeled conditions (+10% Phase A stator resistance, +50% mechanical load torque, -10% Phase C supply voltage unbalance, outer-race bearing defect, and 10% rotor electrical asymmetry) are discrete demonstrator scenarios, not an experimentally mapped continuous operational boundary.
-- **No Experimental Validation**: All signals are ODE simulation outputs. There is no physical motor or benchtop testbed dataset; results demonstrate numerical and analytical dynamics rather than real-world machine health.
+This project demonstrates software-only induction motor condition monitoring using a reduced-order physics-based simulation and stored simulation results.
 
----
+The dashboard does not simulate a physical motor in the browser and does not claim experimental machine diagnosis. The deployed frontend is a read-only reporting layer over a FastAPI service that serves stored JSON result files.
 
-### Multi-Channel Diagnostic Discrimination & Confounder Handling
-
-Faults and operating conditions cannot be reliably isolated with a single electrical metric. The system applies multi-channel discrimination:
-
-1. **Stator Resistance Imbalance (+10% Phase A) vs Supply Voltage Unbalance (-10% Phase C)**: Both induce 100 Hz ($2\omega_e$) torque ripple and negative-sequence currents. They are disambiguated by checking the supply voltage sequence components—Fault 03 exhibits ~3.45% voltage unbalance, while Fault 01 voltage unbalance is 0%.
-2. **Load Torque Increase (+50%) vs Internal Faults**: Increased load increases slip and fundamental current magnitude symmetrically across all three phases without causing negative-sequence unbalance or torque ripple.
-3. **Rotor Electrical Asymmetry (Broken-Bar Proxy)**: Generates characteristic $(1 \pm 2s)f$ sidebands around the 50 Hz stator current fundamental ($s \approx 0.0238$, sidebands at ~47.62 Hz and ~52.38 Hz) and small torque ripple, distinguishing it from static stator asymmetries.
-4. **Bearing Outer-Race Fault (BPFO Vibration Signature)**: Injected purely onto a synthetic accelerometer vibration channel ($f_{BPFO} \approx 87.49\text{ Hz}$ based on 6205-series geometry) leaving electrical ODE traces identical to healthy baseline.
+The model uses a classical stationary-reference-frame Krause d-q formulation with an illustrative 4 kW, 400 V, 50 Hz, 4-pole induction motor parameter set.
 
 ---
 
-### Verification & Consistency Status
+## Simulated Conditions
 
-The repository validates simulation behavior through analytical and numerical self-consistency checks:
-- **Solver Convergence**: SciPy `RK45` integration reaches final step (`t_end = 1.0s` or `3.0s`) with strict tolerances (`rtol = 1e-06`, `atol = 1e-08`).
-- **Steady-State Power Balance**: Relative power-balance residuals remain below $10^{-6}$ across all electrical runs.
-- **Electromagnetic Torque Equilibrium**: Dynamic torque balances mechanical and viscous friction torque ($T_e - T_L - B\omega_m \approx 0$) in steady state.
-- **Analytical Benchmark**: Baseline steady-state torque ($15.4577\text{ N}\cdot\text{m}$) and RMS phase current ($5.5654\text{ A}$) agree with classical equivalent circuit formulas within 0.001% for the checked healthy baseline.
+The project contains six stored conditions:
+
+1. **Healthy baseline**
+   - Balanced 50 Hz supply
+   - 15.0 N·m mechanical load
+
+2. **Increased mechanical load**
+   - 50% increase in load torque
+   - Treated as an operating-condition change rather than an internal fault
+
+3. **Stator resistance imbalance**
+   - +10% phase-A stator resistance
+   - Controlled high-resistance phase-A proxy
+
+4. **Supply voltage unbalance**
+   - Phase-C supply voltage reduced by 10%
+   - Treated as a supply-quality confounder rather than an internal motor fault
+
+5. **Bearing outer-race condition**
+   - Simulated BPFO vibration signature
+   - Generated on a separate auxiliary vibration channel
+   - Electrical motor model remains unchanged
+
+6. **Rotor electrical asymmetry**
+   - 10% rotor electrical asymmetry proxy
+   - Intended as a broken-bar-inspired proxy rather than a complete broken-bar model
 
 ---
 
-### Engineering Decisions & Architecture
+## Diagnostic Discrimination
 
-- **Reduced-Order ODE vs FEM**: System of first-order differential equations enables sub-second simulation runs and clear cause-and-effect isolation without heavy finite-element overhead.
-- **Deterministic Triage vs Black-Box ML**: Diagnostic triage uses physics-grounded threshold rules and sequence component ratios rather than probabilistic models or neural networks, ensuring explainability.
-- **Decoupled Vibration Channel**: Mechanical bearing impact kinematics are simulated directly as an accelerometer time series rather than coupling microscopic high-frequency compliance into the low-frequency electrical flux ODE.
-- **Frontend Architecture**: Next.js (App Router), Tailwind CSS, Lucide icons, and SWR for resilient data fetching with graceful offline fallback to bundled JSON records.
+The dashboard uses multiple signal domains rather than relying on a single electrical metric.
+
+### Stator resistance imbalance vs. supply voltage unbalance
+
+Both conditions can produce negative-sequence current and torque ripple. The diagnostic reasoning therefore checks supply-voltage sequence components alongside current-based evidence.
+
+### Increased load vs. internal asymmetry
+
+An increased mechanical load primarily changes operating-point quantities such as slip, speed and fundamental current magnitude, while the internal asymmetry scenarios introduce additional imbalance signatures.
+
+### Rotor electrical asymmetry
+
+The simulated rotor asymmetry produces characteristic sideband behavior around the stator-current fundamental together with a small torque-ripple signature.
+
+### Bearing outer-race condition
+
+The bearing scenario is represented through a separate simulated vibration channel. Envelope analysis exposes the BPFO component and its harmonic while the electrical motor traces remain identical to the healthy baseline.
 
 ---
 
-## Getting Started
+## Signal Analysis
 
-First, run the development server:
+The project includes reusable spectral-analysis functionality for:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+- FFT-based spectral features
+- Envelope analysis
+- Bearing BPFO-related features
+- Rotor-asymmetry sideband features
+- Cross-condition metric comparison
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The dashboard exposes the resulting stored metrics and the physical reasoning behind the diagnostic classification.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-## Learn More
+## Verification & Consistency
 
-To learn more, take a look at the following resources:
+The repository includes automated tests and engineering consistency checks covering the simulation, analysis, reporting and API layers.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+Key checks include:
+
+- **Solver convergence:** SciPy RK45 integration with `rtol = 1e-6` and `atol = 1e-8`
+- **Power balance:** relative residuals below `1e-6` across the checked electrical runs
+- **Steady-state torque balance:** `Te - TL - Bω ≈ 0`
+- **Analytical benchmark:** checked healthy-baseline torque and RMS current agree with the corresponding equivalent-circuit calculations within 0.001%
+- **Automated test suite:** backend simulation, analysis, reporting and API tests
+- **Frontend validation:** TypeScript compilation and production build
+
+These are mathematical and software consistency checks, not experimental validation against a physical motor.
+
+---
+
+## Engineering Decisions
+
+### Reduced-order ODE instead of FEM
+
+The reduced-order differential-equation model provides a computationally lightweight way to study cause-and-effect relationships without the complexity of finite-element electromagnetic simulation.
+
+### Deterministic diagnostic reasoning instead of black-box ML
+
+The diagnostic layer uses explicit physics-grounded rules and signal features rather than probabilistic models or neural networks. This keeps the reasoning inspectable and reproducible.
+
+### Separate vibration channel
+
+The bearing scenario uses a dedicated simulated vibration channel rather than attempting to represent microscopic bearing-contact dynamics inside the low-frequency electrical motor model.
+
+### Read-only dashboard architecture
+
+The frontend is a Next.js application deployed on Vercel. It communicates with a read-only FastAPI service deployed on Render.
+
+```text
+Stored simulation results
+        │
+        ▼
+  FastAPI / Render
+        │
+        │ JSON
+        ▼
+ Next.js / Vercel
+        │
+        ▼
+ Interactive dashboard
