@@ -1,10 +1,4 @@
-import {
-  conditions,
-  CURATED_METRICS,
-  CONDITION_SPECIFIC_METRICS,
-  getCondition,
-} from "@/lib/conditions"
-import { fmt } from "@/lib/format"
+import { conditions, CURATED_METRICS } from "@/lib/conditions"
 import { BarCompare, type BarDatum } from "@/components/dashboard/bar-compare"
 import { Panel, SectionHeading } from "@/components/dashboard/ui"
 
@@ -70,49 +64,6 @@ export function Comparison() {
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
-      </div>
-
-      <div>
-        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Condition-specific metrics
-        </h2>
-        <p className="mb-3 max-w-3xl text-sm text-muted-foreground">
-          These quantities are reported for only one condition each. They are shown here as values
-          because a cross-condition comparison would not be meaningful.
-        </p>
-        <Panel className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="px-4 py-2 text-left font-medium">Condition</th>
-                  <th className="px-4 py-2 text-left font-medium">Metric</th>
-                  <th className="px-4 py-2 text-right font-medium">Value</th>
-                  <th className="w-16 px-4 py-2 text-left font-medium">Unit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CONDITION_SPECIFIC_METRICS.map((m, i) => {
-                  const c = getCondition(m.conditionId)
-                  return (
-                    <tr key={i} className="border-t border-border/60">
-                      <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
-                        {c?.shortName ?? m.conditionId}
-                      </td>
-                      <td className="px-4 py-2.5 text-foreground">{m.label}</td>
-                      <td className="whitespace-nowrap px-4 py-2.5 text-right font-mono tabular-nums text-foreground">
-                        {fmt(m.value, { decimals: m.decimals, sci: m.sci })}
-                      </td>
-                      <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
-                        {m.unit ?? "\u2014"}
-                      </td>
-                    </tr>
-                  )
-                })}
               </tbody>
             </table>
           </div>

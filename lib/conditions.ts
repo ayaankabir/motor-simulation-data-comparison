@@ -9,7 +9,6 @@ import type {
   MetricRow,
   RawConditionRecord,
   RawSummary,
-  SpecificMetric,
 } from "@/lib/types"
 export type {
   CategoryId,
@@ -20,7 +19,6 @@ export type {
   KeyValue,
   MetricGroup,
   MetricRow,
-  SpecificMetric,
 }
 
 export const CATEGORIES: Record<CategoryId, CategoryMeta> = {
@@ -112,7 +110,7 @@ function asRecord(value: unknown): RawSummary | undefined {
 }
 
 // Map the backend condition_id / source_file to the frontend id used by
-// CONDITION_COLORS and CONDITION_SPECIFIC_METRICS (healthy, fault_01..fault_05).
+// CONDITION_COLORS (healthy, fault_01..fault_05).
 function idFromSourceFile(sourceFile: string): string {
   if (sourceFile.startsWith("healthy")) return "healthy"
   const match = sourceFile.match(/^fault_(\d{2})/)
@@ -295,4 +293,3 @@ export function setConditions(next: RawConditionRecord[]) {
 export function getCondition(id: string) {
   return conditions.find((condition) => condition.id === id)
 }
-export const CONDITION_SPECIFIC_METRICS: SpecificMetric[] = []
