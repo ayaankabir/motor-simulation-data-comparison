@@ -45,6 +45,22 @@ export function About() {
             <li>Consistency checks are displayed as stored; they are not re-run here.</li>
           </ul>
         </Panel>
+        <Panel className="space-y-3 border-border bg-muted/20 p-5">
+          <h3 className="text-sm font-semibold text-foreground">Documented limitations</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground font-medium">
+            Exploratory only — simulated data; generalization to real motors has not been validated.
+          </p>
+          <details className="rounded-lg border border-border/80 bg-background/40">
+            <summary className="cursor-pointer rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground marker:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              View detailed limitations
+            </summary>
+            <div className="space-y-2 px-3 pb-3 text-xs leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
+              <p>The ML analysis uses a small simulated dataset. Its current record and scenario counts are reported by the backend at runtime.</p>
+              <p>Each scenario maps to one class, so scenario/class confounding prevents a meaningful assessment of generalization to unseen scenarios. The generator uses one illustrative motor parameter basis with selected parameter variations.</p>
+              <p>Reported metrics are training-set diagnostics, not independent validation. The project has no experimental validation and has not demonstrated real-world predictive-maintenance accuracy.</p>
+            </div>
+          </details>
+        </Panel>
       </div>
     </div>
   )

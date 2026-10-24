@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import useSWR from "swr"
-import { api } from "@/lib/api"
+import { api, simulate } from "@/lib/api"
 import { conditions, setConditions } from "@/lib/conditions"
-import { BarChart3, CircuitBoard, Compass, Gauge, Info, ShieldCheck } from "lucide-react"
+import { BarChart3, BrainCircuit, CircuitBoard, Compass, Gauge, Info, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PROJECT } from "@/lib/conditions"
 import { Overview } from "@/components/dashboard/overview"
@@ -12,8 +12,10 @@ import { Explorer } from "@/components/dashboard/explorer"
 import { Comparison } from "@/components/dashboard/comparison"
 import { Validation } from "@/components/dashboard/validation"
 import { About } from "@/components/dashboard/about"
+import { SimulationLab } from "@/components/dashboard/simulation-lab"
+import MLAnalysisPage from "@/app/ml-analysis/page"
 
-type SectionId = "overview" | "explorer" | "comparison" | "validation" | "about"
+type SectionId = "overview" | "explorer" | "comparison" | "validation" | "about" | "simulation" | "ml-analysis"
 
 const NAV: { id: SectionId; label: string; icon: typeof Gauge }[] = [
   { id: "overview", label: "Overview", icon: Gauge },
@@ -21,6 +23,8 @@ const NAV: { id: SectionId; label: string; icon: typeof Gauge }[] = [
   { id: "comparison", label: "Comparison", icon: BarChart3 },
   { id: "validation", label: "Consistency checks", icon: ShieldCheck },
   { id: "about", label: "About", icon: Info },
+  { id: "simulation", label: "Simulation lab", icon: CircuitBoard },
+  { id: "ml-analysis", label: "ML Analysis", icon: BrainCircuit },
 ]
 
 export default function Page() {
@@ -114,6 +118,8 @@ export default function Page() {
           {section === "comparison" && <Comparison />}
           {section === "validation" && <Validation />}
           {section === "about" && <About />}
+          {section === "simulation" && <SimulationLab />}
+          {section === "ml-analysis" && <MLAnalysisPage />}
         </div>
       </main>
     </div>
