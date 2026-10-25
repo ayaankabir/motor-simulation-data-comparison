@@ -8,6 +8,7 @@ import {
   type ApiMLAnalyzeResponse,
   type ApiMLModelResponse,
   type ApiMLInterpretationResponse,
+  type ApiMLTrainingResponse,
 } from "@/lib/api"
 import { MLStatus } from "@/components/dashboard/ml-status"
 import { Panel, SectionHeading } from "@/components/dashboard/ui"
@@ -16,6 +17,9 @@ export default function MLAnalysisPage() {
   const [analyze, setAnalyze] = useState<ApiMLAnalyzeResponse | null>(null)
   const [model, setModel] = useState<ApiMLModelResponse | null>(null)
   const [interpretations, setInterpretations] = useState<ApiMLInterpretationResponse | null>(null)
+  const [training, setTraining] = useState<ApiMLTrainingResponse | null>(null)
+  const [trainingLoading, setTrainingLoading] = useState(false)
+  const [trainingError, setTrainingError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,6 +51,24 @@ export default function MLAnalysisPage() {
     fetchData()
   }, [fetchData])
 
+  const handleTrain = useCallback(async () => {
+    setTrainingLoading(true)
+    setTrainingError(null)
+    setTraining(null)
+    try {
+      const trainRes = await ml.train()
+      if (!trainRes.connected) {
+        throw new Error(trainRes.error || "ML training endpoint unavailable")
+      }
+      if (!trainRes.data) throw new Error("ML training returned no result")
+      setTraining(trainRes.data)
+    } catch (e: any) {
+      setTrainingError(e.message || "Failed to run exploratory training")
+    } finally {
+      setTrainingLoading(false)
+    }
+  }, [])
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -73,6 +95,13 @@ export default function MLAnalysisPage() {
             <RefreshCw className="size-4" /> Retry
           </button>
         </Panel>
+        <Panel className="border-amber-500/25 bg-amber-500/[0.05] p-4">
+          <p className="text-sm leading-relaxed text-amber-100">
+            Exploratory only: the dataset contains 48 simulated records across six scenarios with scenario/class confounding. Training-set scores do not establish generalization to unseen scenarios or real motors, and no experimental validation is implied.
+          </p>
+        </Panel>
+        <TrainingAction onTrain={handleTrain} loading={trainingLoading} />
+        <TrainingResults training={training} error={trainingError} />
       </div>
     )
   }
@@ -212,8 +241,10 @@ export default function MLAnalysisPage() {
       <SectionHeading
         eyebrow="Model"
         title="Random Forest configuration"
-        description="The API reports Random Forest configuration and dependency readiness; it does not expose a training endpoint."
+        description="Run exploratory training to calculate training-set diagnostics. These scores are not independent validation or real-world performance."
       />
+
+      <TrainingAction onTrain={handleTrain} loading={trainingLoading} />
 
       <Panel className="space-y-4 p-5">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -251,12 +282,9 @@ export default function MLAnalysisPage() {
           <h4 className="text-sm font-semibold text-foreground mb-3">
             Built-in Feature Importances
           </h4>
-          <div className="space-y-2">
-            {/* These would come from the trained model - shown as placeholder structure */}
-            <p className="text-sm text-muted-foreground">
-              Model training is not available through this API. Readiness reflects configuration/dependencies, not a trained or validated classifier.
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Feature importances are shown with the exploratory training results below. They describe the fitted model and do not establish real-world predictive performance.
+          </p>
         </div>
         <div>
           <h4 className="text-sm font-semibold text-foreground mb-3">
@@ -269,8 +297,232 @@ export default function MLAnalysisPage() {
           </div>
         </div>
       </Panel>
+
+      <TrainingResults training={training} error={trainingError} />
+
     </div>
   )
+}
+
+function TrainingAction({ onTrain, loading }: { onTrain: () => void; loading: boolean }) {
+  return (
+    <Panel className="space-y-3 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Exploratory training</h2>
+          <p className="text-xs text-muted-foreground">Reported scores are training-set metrics, not independent validation.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onTrain}
+          disabled={loading}
+          aria-busy={loading}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? <RefreshCw className="size-4 animate-spin" aria-hidden="true" /> : <BarChart3 className="size-4" aria-hidden="true" />}
+          {loading ? "Running exploratory training…" : "Run Exploratory Training"}
+        </button>
+      </div>
+    </Panel>
+  )
+}
+
+function TrainingResults({ training, error }: { training: ApiMLTrainingResponse | null; error: string | null }) {
+  if (!training && !error) return null
+
+  const classMetrics = training?.metrics?.per_class_metrics
+  const confusionMatrix = training?.metrics?.confusion_matrix
+  const datasetDetails = training?.dataset_info
+
+  return (
+    <section className="space-y-4" aria-live="polite" aria-busy="false">
+      <SectionHeading
+        eyebrow="Training Results"
+        title="Exploratory training output"
+        description="All reported scores are from the training set. They are not independent validation or estimates of real-world performance."
+      />
+
+      {error && (
+        <div role="alert">
+          <Panel className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-5">
+            <AlertCircle className="mx-auto size-8 text-rose-400" aria-hidden="true" />
+            <h3 className="mt-2 text-base font-semibold text-rose-200">Training failed</h3>
+            <p className="mt-1 text-sm text-rose-300">{error}</p>
+          </Panel>
+        </div>
+      )}
+
+      {training && (
+        <div className="space-y-4">
+          {training.message && <p className="text-sm text-muted-foreground">{training.message}</p>}
+          {!training.model_trained && (
+            <Panel className="border-border bg-card/60 p-4">
+              <p className="text-sm font-medium text-foreground">Training did not produce a fitted model.</p>
+              <p className="mt-1 text-sm text-muted-foreground">No training scores or feature importances are presented for this response.</p>
+            </Panel>
+          )}
+          {training.model_trained && training.metrics && (
+            <Panel className="space-y-4 p-5">
+              <h3 className="text-sm font-semibold text-foreground">Training-set metrics</h3>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {training.metrics.training_accuracy !== undefined && (
+                  <div className="rounded-lg bg-primary/5 p-3 text-center">
+                    <p className="text-2xl font-bold text-primary">{formatPercent(training.metrics.training_accuracy)}</p>
+                    <p className="text-xs text-muted-foreground">Training-set accuracy</p>
+                  </div>
+                )}
+                {training.metrics.training_macro_f1 !== undefined && (
+                  <div className="rounded-lg bg-primary/5 p-3 text-center">
+                    <p className="text-2xl font-bold text-primary">{formatPercent(training.metrics.training_macro_f1)}</p>
+                    <p className="text-xs text-muted-foreground">Training-set macro F1</p>
+                  </div>
+                )}
+              </div>
+
+              {classMetrics && Object.keys(classMetrics).length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-sm font-medium text-foreground">Per-class training-set metrics</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-left text-muted-foreground">
+                          <th scope="col" className="pb-2 font-medium">Class</th>
+                          <th scope="col" className="pb-2 text-right font-medium">Precision</th>
+                          <th scope="col" className="pb-2 text-right font-medium">Recall</th>
+                          <th scope="col" className="pb-2 text-right font-medium">F1</th>
+                          <th scope="col" className="pb-2 text-right font-medium">Training support</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(classMetrics).map(([label, metrics]) => (
+                          <tr key={label} className="border-b border-border/50">
+                            <th scope="row" className="py-2 text-left font-medium text-foreground">{label}</th>
+                            <td className="py-2 text-right text-muted-foreground">{metrics.precision.toFixed(3)}</td>
+                            <td className="py-2 text-right text-muted-foreground">{metrics.recall.toFixed(3)}</td>
+                            <td className="py-2 text-right text-muted-foreground">{metrics.f1.toFixed(3)}</td>
+                            <td className="py-2 text-right text-muted-foreground">{metrics.support}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              {training.metrics.note && <p className="text-xs text-muted-foreground">{training.metrics.note}</p>}
+            </Panel>
+          )}
+
+          {training.model_trained && confusionMatrix && confusionMatrix.length > 0 && (
+            <Panel className="space-y-3 p-5">
+              <h3 className="text-sm font-semibold text-foreground">Confusion matrix (training set)</h3>
+              <p className="text-xs text-muted-foreground">Rows are actual classes and columns are predicted classes. The API returns this matrix in class order; positional labels are used here.</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <caption className="sr-only">Training-set confusion matrix, rows actual and columns predicted</caption>
+                  <thead>
+                    <tr className="border-b border-border text-muted-foreground">
+                      <th scope="col" className="p-2 text-left font-medium">Actual / Predicted</th>
+                      {confusionMatrix[0]?.map((_, index) => (
+                        <th scope="col" key={index} className="p-2 text-right font-medium">Predicted {index + 1}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {confusionMatrix.map((row, rowIndex) => (
+                      <tr key={rowIndex} className="border-b border-border/50">
+                        <th scope="row" className="p-2 text-left font-medium text-foreground">Actual {rowIndex + 1}</th>
+                        {row.map((count, columnIndex) => (
+                          <td key={columnIndex} className="p-2 text-right font-mono text-muted-foreground">{count}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+          )}
+
+          {training.model_trained && training.feature_importances && Object.keys(training.feature_importances).length > 0 && (
+            <Panel className="space-y-4 p-5">
+              <h3 className="text-sm font-semibold text-foreground">Feature importances (training set)</h3>
+              <div className="space-y-2">
+                {Object.entries(training.feature_importances).sort(([, a], [, b]) => b - a).map(([feature, importance]) => (
+                  <div key={feature} className="flex items-center gap-3">
+                    <span className="w-48 truncate text-sm font-medium text-foreground">{feature}</span>
+                    <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full bg-primary" style={{ width: `${Math.max(0, Math.min(importance * 100, 100))}%` }} />
+                    </div>
+                    <span className="w-16 text-right text-sm text-muted-foreground">{(importance * 100).toFixed(1)}%</span>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          )}
+
+          {training.model_trained && training.baseline_comparison && Object.keys(training.baseline_comparison).length > 0 && (
+            <Panel className="space-y-3 p-5">
+              <h3 className="text-sm font-semibold text-foreground">Baseline comparisons (training set)</h3>
+              <p className="text-xs text-muted-foreground">Baseline scores are training-set diagnostics and are not independent validation.</p>
+              <pre className="overflow-x-auto rounded bg-muted/50 p-3 text-xs text-muted-foreground">{JSON.stringify(training.baseline_comparison, null, 2)}</pre>
+            </Panel>
+          )}
+
+          {training.limitations && training.limitations.length > 0 && (
+            <Panel className="space-y-3 border-border bg-card/60 p-5">
+              <h3 className="text-sm font-semibold text-foreground">Documented limitations</h3>
+              <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                {training.limitations.map((limitation, index) => <li key={index}>{limitation}</li>)}
+              </ul>
+            </Panel>
+          )}
+
+          {training.warnings && training.warnings.length > 0 && (
+            <Panel className="space-y-3 border-amber-500/25 bg-amber-500/[0.04] p-5">
+              <h3 className="text-sm font-semibold text-amber-200">Training warnings</h3>
+              <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+                {training.warnings.map((warning, index) => <li key={index}>{warning}</li>)}
+              </ul>
+            </Panel>
+          )}
+
+          {datasetDetails && (
+            <Panel className="space-y-3 p-5">
+              <h3 className="text-sm font-semibold text-foreground">Training dataset details</h3>
+              <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                {Object.entries(datasetDetails).map(([key, value]) => (
+                  <div key={key} className="flex min-w-0 justify-between gap-3 border-b border-border/40 py-1">
+                    <dt className="text-muted-foreground">{formatLabel(key)}</dt>
+                    <dd className="break-all text-right font-mono text-foreground">{formatValue(value)}</dd>
+                  </div>
+                ))}
+                {training.training_mode && (
+                  <div className="flex min-w-0 justify-between gap-3 border-b border-border/40 py-1">
+                    <dt className="text-muted-foreground">Training mode</dt>
+                    <dd className="break-all text-right font-mono text-foreground">{training.training_mode}</dd>
+                  </div>
+                )}
+              </dl>
+            </Panel>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function formatPercent(value: number) {
+  const percentage = value <= 1 ? value * 100 : value
+  return `${percentage.toFixed(1)}%`
+}
+
+function formatLabel(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
+function formatValue(value: unknown) {
+  if (value === null || value === undefined) return "N/A"
+  if (typeof value === "object") return JSON.stringify(value)
+  return String(value)
 }
 
 function PipelineStatusCard({

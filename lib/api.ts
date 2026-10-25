@@ -110,6 +110,37 @@ export interface ApiMLInterpretations {
   data?: ApiMLInterpretationResponse
 }
 
+export interface ApiMLTrainingResponse {
+  sklearn_available: boolean
+  model_trained: boolean
+  model_type?: string
+  training_mode?: string
+  dataset_info?: {
+    records?: Record<string, number>
+    n_records?: number
+    n_scenarios?: number
+  }
+  metrics?: {
+    training_accuracy?: number
+    training_macro_f1?: number
+    per_class_metrics?: Record<string, { precision: number; recall: number; f1: number; support: number }>
+    confusion_matrix?: number[][]
+    classification_report?: string
+    note?: string
+  }
+  feature_importances?: Record<string, number>
+  baseline_comparison?: Record<string, unknown>
+  warnings?: string[]
+  limitations?: string[]
+  message?: string
+}
+
+export interface ApiMLTraining {
+  connected: boolean
+  error?: string
+  data?: ApiMLTrainingResponse
+}
+
 export const ml = {
   analyze: async (): Promise<ApiMLAnalyze> => {
     const unavailable = apiUnavailableMessage()
@@ -160,6 +191,24 @@ export const ml = {
       return { connected: true, data: await response.json() as ApiMLInterpretationResponse }
     } catch (error) {
       return { connected: false, error: error instanceof Error ? error.message : "ML interpretations request failed" }
+    }
+  },
+
+  train: async (): Promise<ApiMLTraining> => {
+    const unavailable = apiUnavailableMessage()
+    if (unavailable) return { connected: false, error: unavailable }
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ml/train`, {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        cache: "no-store",
+      })
+      if (!response.ok) {
+        return { connected: false, error: await responseError(response, `ML training failed (${response.status})`) }
+      }
+      return { connected: true, data: await response.json() as ApiMLTrainingResponse }
+    } catch (error) {
+      return { connected: false, error: error instanceof Error ? error.message : "ML training request failed" }
     }
   },
 }
