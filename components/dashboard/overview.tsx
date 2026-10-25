@@ -67,9 +67,9 @@ export function Overview({ onSelect }: { onSelect: (id: string) => void }) {
 
 function ScopeBanner() {
   return (
-    <Panel className="flex items-start gap-3 border-sky-500/25 bg-sky-500/[0.06] p-4">
-      <FlaskConical className="mt-0.5 size-5 shrink-0 text-sky-300" aria-hidden />
-      <div className="space-y-1 text-sm">
+    <Panel className="flex items-start gap-3 border-amber-500/20 bg-amber-500/[0.04] p-3 sm:p-4">
+      <FlaskConical className="mt-0.5 size-5 shrink-0 text-amber-300" aria-hidden />
+      <div className="min-w-0 flex-1 space-y-1 text-sm [overflow-wrap:anywhere]">
         <p className="font-medium text-foreground">Simulation only — no experimental validation</p>
         <p className="text-muted-foreground">
           {PROJECT.honesty}

@@ -6,6 +6,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  turbopack: {
+    // Disable Turbopack due to network/sandbox restrictions
+  },
 }
 
 export default nextConfig
